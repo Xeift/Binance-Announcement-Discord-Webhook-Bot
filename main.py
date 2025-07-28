@@ -114,7 +114,7 @@ def on_message(ws, message):
 
 
     except Exception as e:
-        print(f'[Message Parsing Error] {e}\n原始訊息: {message}')
+        print(f'[Message Parsing Error] {e}\noriginal message: {message}')
 
 def on_error(ws, error):
     print(f'[WebSocket Error] {error}')
