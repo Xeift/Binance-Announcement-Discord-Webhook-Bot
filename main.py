@@ -8,6 +8,7 @@ import random
 import string
 import threading
 import time
+from datetime import datetime, timezone
 from typing import List
 
 import websocket
@@ -102,14 +103,16 @@ def on_message(ws, message):
             raw_data = msg.get('data')
             announcement = json.loads(raw_data)
             webhook = SyncWebhook.from_url(DISCORD_WEBHOOK_URL)
-            embed = Embed(title=announcement['title'], color=0xF0B90B)
-            embed.add_field(name='Category', value=announcement['catalogName'], inline=False)
             translated_text = translate(announcement['body'])
-            print('-------------------------------------')
+
+            embed = Embed(title=announcement['title'], color=0xF0B90B, description=translated_text[:2000])
+            embed.add_field(name='Category', value=announcement['catalogName'], inline=False)
+            print('----------       New announcement found!     ----------')
+            print(raw_data)
+            print()
             print(translated_text)
-            print('-------------------------------------')
-            embed.add_field(name='Content', value=translated_text[:800], inline=False)
-            embed.timestamp=int(announcement['publishDate'] / 1000)
+            print('----------       New announcement found!     ----------')
+            embed.timestamp = datetime.fromtimestamp(announcement['publishDate'], tz=timezone.utc)
             webhook.send(embed=embed)
 
 
