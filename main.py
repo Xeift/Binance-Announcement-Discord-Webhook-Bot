@@ -112,7 +112,11 @@ def on_message(ws, message):
             print()
             print(translated_text)
             print('----------       New announcement found!     ----------')
-            embed.timestamp = datetime.fromtimestamp(announcement['publishDate'], tz=timezone.utc)
+            embed.timestamp = datetime.fromtimestamp(announcement['publishDate'] / 1000, tz=timezone.utc)
+            embed.set_footer(
+                text='Source: Binance WebSocket API. Translated by Google Gemini API.',
+                icon_url='https://upload.wikimedia.org/wikipedia/commons/thumb/e/e8/Binance_Logo.svg/127px-Binance_Logo.svg.png'
+            )
             webhook.send(embed=embed)
 
 
