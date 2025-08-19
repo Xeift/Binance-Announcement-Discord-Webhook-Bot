@@ -106,7 +106,7 @@ def on_message(ws, message):
             translated_text = translate(announcement['body'])
 
             embed = Embed(title=announcement['title'], color=0xF0B90B, description=translated_text[:2000])
-            embed.add_field(name='類別', value=announcement['catalogName'], inline=False)
+            embed.add_field(name='Category', value=announcement['catalogName'], inline=False)
             print('----------       New announcement found!     ----------')
             print(raw_data)
             print()
@@ -114,14 +114,14 @@ def on_message(ws, message):
             print('----------       New announcement found!     ----------')
             embed.timestamp = datetime.fromtimestamp(announcement['publishDate'] / 1000, tz=timezone.utc)
             embed.set_footer(
-                text='數據來源：Binance WebSocket API -> Google Gemini API 翻譯',
+                text='Source: Binance WebSocket API. Translated by Google Gemini API.',
                 icon_url='https://upload.wikimedia.org/wikipedia/commons/thumb/e/e8/Binance_Logo.svg/127px-Binance_Logo.svg.png'
             )
             webhook.send(embed=embed)
 
 
     except Exception as e:
-        print(f'[Message Parsing Error] {e}\n原始訊息: {message}')
+        print(f'[Message Parsing Error] {e}\noriginal message: {message}')
 
 def on_error(ws, error):
     print(f'[WebSocket Error] {error}')
