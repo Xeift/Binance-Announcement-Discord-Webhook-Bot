@@ -1,4 +1,3 @@
-import base64
 import datetime
 import hashlib
 import hmac
@@ -9,7 +8,6 @@ import string
 import threading
 import time
 from datetime import datetime, timezone
-from typing import List
 
 import websocket
 from discord import Embed, SyncWebhook
@@ -28,6 +26,18 @@ TOPIC = 'com_announcement_en'
 RECV_WINDOW = 30000
 BASE_URI = 'wss://api.binance.com/sapi/wss'
 
+
+category_mapping = {
+    'category_local': '類別',
+    'New Cryptocurrency Listing': '新上架加密貨幣',
+    'Latest Binance News': '幣安最新動態',
+    'Latest Activities': '最新活動',
+    'New Fiat Listings': '新上架法幣',
+    'API Updates': '幣安 API 更新',
+    'Maintenance Updates': '維護更新',
+    'Crypto Airdrop': '空投',
+    'Delisting': '下架資訊'
+}
 
 def generate_random_string(length=32):
     return ''.join(random.choices(string.ascii_letters + string.digits, k=length))
@@ -66,21 +76,22 @@ def start_ping(ws):
     threading.Thread(target=run, daemon=True).start()
 
 class TranslationSchema(BaseModel):
-    translated_content: str
+    translated_title: str
+    translated_body: str
 
 def translate(original_text):
     client = genai.Client(api_key=GEMINI_API_KEY)
-    model = "gemini-2.0-flash-lite"
+    model = 'gemini-2.5-flash'
     contents = [
         types.Content(
-            role="user",
+            role='user',
             parts=[
                 types.Part.from_text(text=original_text),
             ],
         ),
     ]
     generate_content_config = types.GenerateContentConfig(
-        response_mime_type="application/json",
+        response_mime_type='application/json',
         response_schema=TranslationSchema,
         system_instruction=[
             types.Part.from_text(text=TRANSLATION_PROMPT),
@@ -93,7 +104,7 @@ def translate(original_text):
         config=generate_content_config,
     )
     
-    return response.parsed.translated_content  
+    return (response.parsed.translated_title, response.parsed.translated_body)
 
 
 def on_message(ws, message):
@@ -103,14 +114,17 @@ def on_message(ws, message):
             raw_data = msg.get('data')
             announcement = json.loads(raw_data)
             webhook = SyncWebhook.from_url(DISCORD_WEBHOOK_URL)
-            translated_text = translate(announcement['body'])
+            (translated_title, translated_body) = translate(f'"title": {announcement["title"]}, "body": {announcement["body"]}')
 
-            embed = Embed(title=announcement['title'], color=0xF0B90B, description=translated_text[:2000])
-            embed.add_field(name='Category', value=announcement['catalogName'], inline=False)
+            embed = Embed(title=translated_title, color=0xF0B90B, description=translated_body[:2000])
+            if category_mapping:
+                embed.add_field(name=category_mapping['category_local'], value=category_mapping[announcement['catalogName']], inline=False)
+            else:
+                embed.add_field(name='Category', value=announcement['catalogName'], inline=False)
+
             print('----------       New announcement found!     ----------')
+            print(announcement['title'])
             print(raw_data)
-            print()
-            print(translated_text)
             print('----------       New announcement found!     ----------')
             embed.timestamp = datetime.fromtimestamp(announcement['publishDate'] / 1000, tz=timezone.utc)
             embed.set_footer(
