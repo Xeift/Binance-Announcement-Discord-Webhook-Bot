@@ -27,17 +27,18 @@ RECV_WINDOW = 30000
 BASE_URI = 'wss://api.binance.com/sapi/wss'
 
 
-category_mapping = {
-    'category_local': '類別',
-    'New Cryptocurrency Listing': '新上架加密貨幣',
-    'Latest Binance News': '幣安最新動態',
-    'Latest Activities': '最新活動',
-    'New Fiat Listings': '新上架法幣',
-    'API Updates': '幣安 API 更新',
-    'Maintenance Updates': '維護更新',
-    'Crypto Airdrop': '空投',
-    'Delisting': '下架資訊'
-}
+category_mapping = ''
+# category_mapping = {
+#     'category_local': '類別',
+#     'New Cryptocurrency Listing': '新上架加密貨幣',
+#     'Latest Binance News': '幣安最新動態',
+#     'Latest Activities': '最新活動',
+#     'New Fiat Listings': '新上架法幣',
+#     'API Updates': '幣安 API 更新',
+#     'Maintenance Updates': '維護更新',
+#     'Crypto Airdrop': '空投',
+#     'Delisting': '下架資訊'
+# }
 
 def generate_random_string(length=32):
     return ''.join(random.choices(string.ascii_letters + string.digits, k=length))
