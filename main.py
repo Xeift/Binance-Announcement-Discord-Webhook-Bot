@@ -82,7 +82,7 @@ class TranslationSchema(BaseModel):
 
 def translate(original_text):
     client = genai.Client(api_key=GEMINI_API_KEY)
-    model = 'gemini-2.5-flash'
+    model = 'gemini-3-flash-preview'
     contents = [
         types.Content(
             role='user',
@@ -104,7 +104,6 @@ def translate(original_text):
         contents=contents,
         config=generate_content_config,
     )
-    
     return (response.parsed.translated_title, response.parsed.translated_body)
 
 
@@ -129,7 +128,7 @@ def on_message(ws, message):
             print('----------       New announcement found!     ----------')
             embed.timestamp = datetime.fromtimestamp(announcement['publishDate'] / 1000, tz=timezone.utc)
             embed.set_footer(
-                text='Source: Binance WebSocket API. Translated by Google Gemini API.',
+                text='Source: Binance WebSocket API. Translated by Google Gemini 3 Flash.',
                 icon_url='https://upload.wikimedia.org/wikipedia/commons/thumb/e/e8/Binance_Logo.svg/127px-Binance_Logo.svg.png'
             )
             webhook.send(embed=embed)
