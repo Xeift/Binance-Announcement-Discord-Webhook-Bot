@@ -5,22 +5,24 @@ import json
 import os
 import random
 import string
+import subprocess
+import tempfile
 import threading
 import time
 from datetime import datetime, timezone
+from pathlib import Path
 
 import websocket
 from discord import Embed, SyncWebhook
 from dotenv import load_dotenv
-from google import genai
-from google.genai import types
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 load_dotenv()
-API_KEY = os.getenv('BINANCE_APIKEY')
+API_KEY = os.getenv('BINANCE_API_KEY')
 SECRET_KEY = os.getenv('BINANCE_SECRET_KEY')
 DISCORD_WEBHOOK_URL = os.getenv('DISCORD_WEBHOOK_URL')
-GEMINI_API_KEY = os.getenv('GEMINI_API_KEY')
+CODEX_BIN = os.getenv('CODEX_BIN', 'codex')
+CODEX_MODEL = os.getenv('CODEX_MODEL', 'gpt-6.1-sol')
 TRANSLATION_PROMPT = os.getenv('TRANSLATION_PROMPT')
 TOPIC = 'com_announcement_en'
 RECV_WINDOW = 30000
@@ -77,34 +79,52 @@ def start_ping(ws):
     threading.Thread(target=run, daemon=True).start()
 
 class TranslationSchema(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+
     translated_title: str
     translated_body: str
 
 def translate(original_text):
-    client = genai.Client(api_key=GEMINI_API_KEY)
-    model = 'gemini-3-flash-preview'
-    contents = [
-        types.Content(
-            role='user',
-            parts=[
-                types.Part.from_text(text=original_text),
-            ],
-        ),
-    ]
-    generate_content_config = types.GenerateContentConfig(
-        response_mime_type='application/json',
-        response_schema=TranslationSchema,
-        system_instruction=[
-            types.Part.from_text(text=TRANSLATION_PROMPT),
-        ],
-    )
+    if not TRANSLATION_PROMPT:
+        raise ValueError('Missing required environment variable: TRANSLATION_PROMPT')
 
-    response = client.models.generate_content(
-        model=model,
-        contents=contents,
-        config=generate_content_config,
+    prompt = (
+        f'{TRANSLATION_PROMPT}\n\n'
+        'Return the translated title and body in the required JSON format.\n\n'
+        f'Announcement:\n{original_text}'
     )
-    return (response.parsed.translated_title, response.parsed.translated_body)
+    with tempfile.TemporaryDirectory(prefix='binance-translation-') as temp_dir:
+        schema_path = Path(temp_dir) / 'schema.json'
+        output_path = Path(temp_dir) / 'translation.json'
+        schema_path.write_text(json.dumps(TranslationSchema.model_json_schema()), encoding='utf-8')
+
+        result = subprocess.run(
+            [
+                CODEX_BIN, 'exec',
+                '--model', CODEX_MODEL,
+                '--sandbox', 'read-only',
+                '--skip-git-repo-check',
+                '--ephemeral',
+                '-c', 'forced_login_method="chatgpt"',
+                '-c', 'model_reasoning_effort="low"',
+                '--output-schema', str(schema_path),
+                '--output-last-message', str(output_path),
+                '--color', 'never',
+                '-',
+            ],
+            input=prompt,
+            cwd=temp_dir,
+            env={key: value for key, value in os.environ.items() if key not in {'OPENAI_API_KEY', 'CODEX_API_KEY'}},
+            capture_output=True,
+            text=True,
+            timeout=120,
+            check=False,
+        )
+        if result.returncode != 0:
+            raise RuntimeError(f'codex exec failed ({result.returncode}): {result.stderr.strip()}')
+
+        translation = TranslationSchema.model_validate_json(output_path.read_text(encoding='utf-8'), strict=True)
+    return (translation.translated_title, translation.translated_body)
 
 
 def on_message(ws, message):
@@ -128,7 +148,7 @@ def on_message(ws, message):
             print('----------       New announcement found!     ----------')
             embed.timestamp = datetime.fromtimestamp(announcement['publishDate'] / 1000, tz=timezone.utc)
             embed.set_footer(
-                text='Source: Binance WebSocket API. Translated by Google Gemini 3 Flash.',
+                text=f'Source: Binance WebSocket API. Translated by {CODEX_MODEL}.',
                 icon_url='https://upload.wikimedia.org/wikipedia/commons/thumb/e/e8/Binance_Logo.svg/127px-Binance_Logo.svg.png'
             )
             webhook.send(embed=embed)
