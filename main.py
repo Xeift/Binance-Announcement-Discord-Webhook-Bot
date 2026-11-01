@@ -149,7 +149,7 @@ def on_message(ws, message):
             embed.timestamp = datetime.fromtimestamp(announcement['publishDate'] / 1000, tz=timezone.utc)
             embed.set_footer(
                 text=f'Source: Binance WebSocket API. Translated by {CODEX_MODEL}.',
-                icon_url='https://upload.wikimedia.org/wikipedia/commons/thumb/e/e8/Binance_Logo.svg/127px-Binance_Logo.svg.png'
+                icon_url='https://bin.bnbstatic.com/static/images/common/logo.png'
             )
             webhook.send(embed=embed)
 
