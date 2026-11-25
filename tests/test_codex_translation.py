@@ -15,7 +15,7 @@ class CodexTranslationTests(unittest.TestCase):
         self.enterContext(patch.multiple(
             main,
             CODEX_BIN='codex',
-            CODEX_MODEL='gpt-6.1-sol',
+            CODEX_MODEL='gpt-6.2-sol',
             TRANSLATION_PROMPT='Translate into Traditional Chinese.',
         ))
 
@@ -44,7 +44,7 @@ class CodexTranslationTests(unittest.TestCase):
         self.run.assert_called_once()
         args, kwargs = self.run.call_args
         command = args[0]
-        self.assertEqual(command[:4], ['codex', 'exec', '--model', 'gpt-6.1-sol'])
+        self.assertEqual(command[:4], ['codex', 'exec', '--model', 'gpt-6.2-sol'])
         self.assertIn('forced_login_method="chatgpt"', command)
         self.assertIn('model_reasoning_effort="low"', command)
         self.assertEqual(command[command.index('--sandbox') + 1], 'read-only')
@@ -115,7 +115,7 @@ class CodexTranslationTests(unittest.TestCase):
         webhook.return_value.send.assert_called_once()
         embed = webhook.return_value.send.call_args.kwargs['embed']
         self.assertEqual(embed.title, '維護公告')
-        self.assertIn('gpt-6.1-sol', embed.footer.text)
+        self.assertIn('gpt-6.2-sol', embed.footer.text)
 
     def test_discord_sync_webhook_can_be_created(self):
         webhook_id = 123456789012345678

@@ -4,7 +4,7 @@ WORKDIR /app
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends nodejs npm \
-    && npm install -g @openai/codex@0.163.0 \
+    && npm install -g @openai/codex@0.172.0 \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
